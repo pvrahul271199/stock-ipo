@@ -1,4 +1,33 @@
-import { IPO } from './types';
+import { IPO, UpcomingIPO } from './types';
+
+export const sampleUpcomingIPOs: UpcomingIPO[] = [
+    {
+      symbol: 'PURPLEUTED',
+      companyName: 'Purple United Sales Limited',
+      issueStartDate: '11-Dec-2024',
+      issueEndDate: '13-Dec-2024',
+      issueSize: '2604000',
+      issuePrice: 'Rs.121 to Rs.126',
+      lotSize: '1000',
+      priceBand: 'Rs.121 to Rs.126',
+      series: 'SME',
+      status: 'Forthcoming',
+      sr_no: 1
+    },
+    {
+      symbol: 'DHANLAXMI',
+      companyName: 'Dhanlaxmi Crop Science Limited',
+      issueStartDate: '09-Dec-2024',
+      issueEndDate: '11-Dec-2024',
+      issueSize: '3170000',
+      issuePrice: 'Rs.52 to Rs.55',
+      lotSize: '2000',
+      priceBand: 'Rs.52 to Rs.55',
+      series: 'SME',
+      status: 'Forthcoming',
+      sr_no: 2
+    }
+]
 
 export const sampleIPOs: IPO[] = [
   {

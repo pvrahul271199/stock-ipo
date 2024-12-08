@@ -14,6 +14,7 @@ import { sampleIPOs } from '@/lib/data'
 import { IPO } from '@/lib/types'
 import { getCookiesForNSE } from '@/actions/nseapi'
 import { Navbar } from '@/components/layout/navbar'
+import { NewsletterPopup } from '@/components/newsletter/newsletter-popup'
 
 export default function Home() {
   const [selectedIPO, setSelectedIPO] = useState<IPO | null>(sampleIPOs[0])
@@ -21,16 +22,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('active')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [displayedIPOs, setDisplayedIPOs] = useState(sampleIPOs.filter(ipo => ipo.status === 'Active'))
-
-  // useEffect(() => {
-  //   const filtered = sampleIPOs.filter(ipo => 
-  //     activeTab === 'active' ? ipo.status === 'Active' : ipo.status === 'Past'
-  //   )
-  //   setDisplayedIPOs(filtered)
-  //   if (filtered.length > 0 && (!selectedIPO || selectedIPO.status !== filtered[0].status)) {
-  //     setSelectedIPO(filtered[0])
-  //   }
-  // }, [activeTab])
+  const [pageLoaded, setPageLoaded] = useState(false)
 
   useEffect(() => {
     async function fetchIpo() {
@@ -45,6 +37,14 @@ export default function Home() {
       }
     }
     fetchIpo()
+  }, [])
+
+  useEffect(() => {
+    // Set pageLoaded to true after a short delay to ensure dashboard is rendered
+    const timer = setTimeout(() => {
+      setPageLoaded(true)
+    }, 1000)
+    return () => clearTimeout(timer)
   }, [])
 
   // const totalSubscription = displayedIPOs.reduce((acc, ipo) => 
@@ -143,16 +143,12 @@ export default function Home() {
             {selectedIPO && (
               <div className="space-y-6">
                 <IPODetails ipo={selectedIPO} />
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <SubscriptionChart data={selectedIPO.subscriptionDetails} />
-                  <BidDetailsTable bidDetails={selectedIPO.bidDetails} />
-                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+      {pageLoaded && <NewsletterPopup />}
     </div>
   )
 }

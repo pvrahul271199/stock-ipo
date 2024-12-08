@@ -15,9 +15,9 @@ interface IPOListProps {
 export function IPOList({ ipos, selectedIPO, onSelectIPO }: IPOListProps) {
   return (
     <div className="space-y-4">
-      {ipos.map((ipo) => (
+      {ipos?.map((ipo) => (
         <Card
-          key={ipo.id}
+          key={ipo?.id}
           className={cn(
             "cursor-pointer transition-all hover:bg-accent hover:shadow-md",
             selectedIPO?.id === ipo.id && "border-primary bg-accent/50"

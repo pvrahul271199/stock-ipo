@@ -55,7 +55,8 @@ const getAPIDataForNSE = async (nseCookies:any) => {
         });
         const data = await response.json();
         console.log("got response", data);
-        return data;
+        const filteredData = data.filter((item: any) => item.series !== "DEBT");
+        return filteredData;
     } catch (error:any) {
         if (error.status === 401) {
             console.log("getAPIData =========> error.status === 401. Fetching cookies...");

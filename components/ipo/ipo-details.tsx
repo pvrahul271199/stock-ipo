@@ -1,16 +1,18 @@
 "use client"
 
-import { IPO, IPODetails, IPOSizeDetails } from "@/lib/types"
+import { IPO, IPOSizeDetails } from "@/lib/types"
+import type { IPODetails, UpcomingIPO } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileText, Download } from "lucide-react"
+import { FileText, Download, ExternalLink } from "lucide-react"
 import { useEffect, useState } from "react"
 import { fetchIPODetails } from "@/lib/api"
 import { getIPODetailsCookiesForNSE } from "@/actions/ipodetailsapi"
+import { SubscriptionChart } from "./subscription-chart"
 
 interface IPODetailsProps {
-  ipo: IPO;
+  ipo: IPO | UpcomingIPO;
 }
 
 export function IPODetails({ ipo }: IPODetailsProps) {
@@ -65,9 +67,11 @@ export function IPODetails({ ipo }: IPODetailsProps) {
   };
 
   useEffect(() => {
-    if (nseDetails?.issueInfo.dataList[4].value) {
-      const details = extractDetails(nseDetails.issueInfo.dataList[4].value);
-      const price = extractPrice(nseDetails.issueInfo.dataList[6].value);
+    if (nseDetails?.issueInfo) {
+      const issueSizeItem = nseDetails.issueInfo.dataList.find(item => item.title === "Issue Size");
+      const details = extractDetails(issueSizeItem?.value);
+      const priceRangeItem = nseDetails.issueInfo.dataList.find(item => item.title === "Price Range");
+      const price = extractPrice(priceRangeItem?.value);
       details.totalIssueAmount = details.totalIssueSize * (price.upperBand);
       setIssueSizeDetails({
         ...details,
@@ -106,31 +110,35 @@ export function IPODetails({ ipo }: IPODetailsProps) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium">Price Range</p>
-                    <p className="text-sm text-muted-foreground">{nseDetails?.issueInfo.dataList[6].value}</p>
+                    {ipo.status === 'Forthcoming' && 'priceBand' in ipo ? (
+                      <p className="text-sm text-muted-foreground">{ipo.priceBand.replace(/Rs\./g, 'Rs ').replace(/to/g, 'to  ') + ' per equity share'}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{nseDetails?.issueInfo.dataList.find(item => item.title === "Price Range")?.value}</p>
+                    )}
                   </div>
-                  {/* <div>
-                    <p className="text-sm font-medium">Price Upper</p>
-                    <p className="text-sm text-muted-foreground">{issueSizeDetails?.upperBand}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Price Lower Range</p>
-                    <p className="text-sm text-muted-foreground">{issueSizeDetails?.lowerBand}</p>
-                  </div> */}
                   <div>
                     <p className="text-sm font-medium">Total Issue Size</p>
-                    <p className="text-sm text-muted-foreground">Rs {issueSizeDetails?.totalIssueAmount.toLocaleString()}</p>
+                    {ipo.status === 'Forthcoming' && 'priceBand' in ipo ? (
+                      <p className="text-sm text-muted-foreground">{parseInt(ipo?.issueSize).toLocaleString()}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Rs {issueSizeDetails?.totalIssueAmount.toLocaleString()}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium">Face Value</p>
-                    <p className="text-sm text-muted-foreground">{nseDetails?.issueInfo.dataList[7].value}</p>
+                    {ipo.status === 'Forthcoming' && 'priceBand' in ipo ? (
+                      <p className="text-sm text-muted-foreground">{nseDetails?.issueInfo.dataList[7].value}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground"> {nseDetails?.issueInfo.dataList.find(item => item.title === "Face Value")?.value}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium">Minimum Order Quantity</p>
-                    <p className="text-sm text-muted-foreground">{nseDetails?.issueInfo.dataList[10].value} </p>
+                    <p className="text-sm text-muted-foreground">{nseDetails?.issueInfo.dataList.find(item => item.title === "Minimum Order Quantity")?.value ? nseDetails?.issueInfo.dataList.find(item => item.title === "Minimum Order Quantity")?.value : "NA"}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Minimum Lot Size</p>
-                    <p className="text-sm text-muted-foreground">{issueSizeDetails?.upperBand ? (parseFloat(nseDetails?.issueInfo.dataList[10].value.match(/([\d.]+) Equity Shares/)?.[1] || '0') * issueSizeDetails.upperBand).toLocaleString() : 'N/A'} </p>
+                    <p className="text-sm font-medium">Minimum Lot Size Amount</p>
+                    <p className="text-sm text-muted-foreground">Rs {issueSizeDetails?.upperBand ? (parseFloat(nseDetails?.issueInfo.dataList[10].value.match(/([\d.]+) Equity Shares/)?.[1] || '0') * issueSizeDetails.upperBand).toLocaleString() : 'N/A'} </p>
                   </div>
                   {/* <div>
                     <p className="text-sm font-medium">Maximum Order</p>
@@ -143,7 +151,7 @@ export function IPODetails({ ipo }: IPODetailsProps) {
                   <div>
                     <p className="text-sm font-medium">Offer for Sale</p>
                     <p className="text-sm text-muted-foreground"> {issueSizeDetails?.offerForSale.toLocaleString()} Shares ({issueSizeDetails ? ((issueSizeDetails.offerForSale / issueSizeDetails.totalIssueSize) * 100).toFixed(2) : 'N/A'}% of total Issue)</p>
-                 
+
                   </div>
                 </div>
               </CardContent>
@@ -154,16 +162,45 @@ export function IPODetails({ ipo }: IPODetailsProps) {
                 <CardTitle>Important Dates</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Issue Opens</p>
-                  <p className="text-sm text-muted-foreground">{ipo.issueStartDate}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Issue Closes</p>
-                  <p className="text-sm text-muted-foreground">{ipo.issueEndDate}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium">Issue Opens</p>
+                    <p className="text-sm text-muted-foreground">{ipo.issueStartDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Issue Closes</p>
+                    <p className="text-sm text-muted-foreground">{ipo.issueEndDate}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+            <Card className="col-span-2">
+              <CardHeader>
+                <CardTitle>Issue Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    "Book Running Lead Managers",
+                    "Sponsor Bank",
+                    "Name of the Registrar",
+                    "Address of the Registrar",
+                    "Contact person name number and Email id",
+                    "Categories",
+                    "Sub-Categories applicable for UPI"
+                  ].map((title) => {
+                    const item = nseDetails?.issueInfo.dataList.find((item) => item.title === title);
+                    return item ? (
+                      <div key={title}>
+                        <h4 className="text-sm font-medium">{title}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">{item.value.replace(/"/g, '')}</p>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+            {/* <SubscriptionChart data={nseDetails} /> //commented will add later */}
           </div>
         </TabsContent>
 
@@ -174,25 +211,26 @@ export function IPODetails({ ipo }: IPODetailsProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {ipo.subscriptionDetails?.map((detail, index) => (
+                {nseDetails?.bidDetails?.map((detail, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">{detail.category}</span>
                       <span className="text-sm text-muted-foreground">
-                        {detail.subscription}x subscribed
+                        {/* {detail.subscription}x subscribed */}
+                        {detail.noOfshareBid}x subscribed
                       </span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary transition-all"
                         style={{
-                          width: `${Math.min(detail.subscription * 100, 100)}%`,
+                          width: `${Math.min(parseInt(detail.noOfshareBid) * 100, 100)}%`,
                         }}
                       />
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Offered: {detail.offered.toLocaleString()}</span>
-                      <span>Bids: {detail.bids.toLocaleString()}</span>
+                      <span>Offered: {detail.noOfshareBid.toLocaleString()}</span>
+                      <span>Bids: {detail.noOfshareBid.toLocaleString()}</span>
                     </div>
                   </div>
                 ))}
@@ -239,25 +277,6 @@ export function IPODetails({ ipo }: IPODetailsProps) {
                   </div>
                 </CardContent>
               </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Issue Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {nseDetails.issueInfo.dataList.map((item, index) => (
-                      item.title && (
-                        <div key={index}>
-                          <h4 className="text-sm font-medium">{item.title}</h4>
-                          <p className="text-sm text-muted-foreground mt-1" 
-                             dangerouslySetInnerHTML={{ __html: item.value }}></p>
-                        </div>
-                      )
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           ) : (
             <Card>
@@ -275,17 +294,42 @@ export function IPODetails({ ipo }: IPODetailsProps) {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {ipo.documents?.map((doc, index) => (
-                  <a
-                    key={index}
-                    href={doc.url}
-                    className="flex items-center p-3 rounded-lg border hover:bg-accent"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{doc.name}</span>
-                    <Download className="h-4 w-4 ml-auto" />
-                  </a>
-                ))}
+                {[
+                  "Red Herring Prospectus",
+                  "Ratios / Basis of Issue Price",
+                  "Sample Application Forms",
+                  "Security Parameters",
+                  "Security Parameters (Post Anchor)",
+                  "Anchor Allocation Report",
+                  "Processing of ASBA Applications",
+                  "Video link  for UPI based ASBA process",
+                  "Video link  for BHIM UPI Registration"
+                ].map((title, index) => {
+                  const item = nseDetails?.issueInfo.dataList.find((item) => item.title === title);
+                  if (item) {
+                    const anchorLink = item.value.startsWith("<a")
+                      ? item.value.match(/href=["']?(https?:\/\/[^"'\s>]+)/)?.[1] || ''
+                      : item.value.startsWith('http')
+                        ? item.value
+                        : item.value.match(/href="([^"]*)"/)?.[1] || '';
+                    const IconComponent = item.value.startsWith("<a") ? ExternalLink : Download;
+                    console.log("anchorLink", anchorLink);
+                    return (
+                      <a
+                        key={index}
+                        href={anchorLink}
+                        className="flex items-center p-3 rounded-lg border hover:bg-accent"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        <p>{item.title}</p>
+                        <IconComponent className="h-4 w-4 ml-auto" />
+                      </a>
+                    );
+                  }
+                  return null;
+                })}
               </div>
             </CardContent>
           </Card>

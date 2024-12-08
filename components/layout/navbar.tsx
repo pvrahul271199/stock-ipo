@@ -23,19 +23,19 @@ export function Navbar() {
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <a
               className="transition-colors hover:text-foreground/80 text-foreground"
-              href="/active"
+              href="/"
             >
               Active IPOs
             </a>
             <a
               className="transition-colors hover:text-foreground/80 text-foreground/60"
-              href="/upcoming"
+              href="/upcoming-ipos"
             >
               Upcoming
             </a>
             <a
               className="transition-colors hover:text-foreground/80 text-foreground/60"
-              href="/past"
+              href="/past-ipos"
             >
               Past IPOs
             </a>
